@@ -1,4 +1,4 @@
-# Purescript-Chappagetti
+# Purescript-Chapagetti
 
 A simple wrapper around React-Redux that provides real row unions for working with mapState and mapDispatch.
 
