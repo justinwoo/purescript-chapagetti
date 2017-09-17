@@ -4,6 +4,10 @@ A simple wrapper around React-Redux that provides real row unions for working wi
 
 ![](https://i.imgur.com/94WNLaX.png)
 
+### Warning
+
+Connect will always be a partial function because the React Context-injected Store can't be tracked in any reasonable way. While I would put `Partial` as a constraint on `connect`, this would be heavy-handed considering that any approach that duct-tapes in Redux will always be just that -- fairly brittle. You should really try to migrate your application from the logical core first if you can. This library exists only for integration purposes.
+
 ## Example
 
 From [test/Main.purs](test/Main.purs)

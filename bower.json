@@ -1,5 +1,10 @@
 {
   "name": "purescript-chapagetti",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/justinwoo/purescript-chapagetti.git"
+  },
   "ignore": [
     "**/.*",
     "node_modules",
