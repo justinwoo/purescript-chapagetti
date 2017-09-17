@@ -1,0 +1,23 @@
+{
+  "name": "purescript-chapagetti",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "pulp browserify -m Test.Main --to test/index.js"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "react-redux": "^5.0.6"
+  },
+  "devDependencies": {
+    "create-react-class": "^15.6.0",
+    "react": "^15.6.1",
+    "react-dom": "^15.6.1",
+    "redux": "^3.7.2"
+  }
+}
