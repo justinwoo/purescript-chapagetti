@@ -2,25 +2,19 @@ module Test.Main where
 
 import Prelude
 
-import Chapagetti (MapDispatch(..), MapState(..), connect, reduxProvider)
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (log)
-import Control.Monad.Eff.Uncurried (mkEffFn1, runEffFn1)
-import DOM.HTML (window)
-import DOM.HTML.Types (htmlDocumentToDocument)
-import DOM.HTML.Window (document)
-import DOM.Node.NonElementParentNode (getElementById)
-import DOM.Node.Types (ElementId(..), documentToNonElementParentNode)
-import Data.Function.Uncurried (mkFn2)
-import Data.Maybe (fromJust, fromMaybe)
+import Chapagetti (MapDispatch(..), MapState(..), connect)
+import Data.Function.Uncurried as FU
+import Data.Maybe (fromMaybe)
 import Data.Nullable (toMaybe)
+import Effect (Effect)
+import Effect.Console (log)
+import Effect.Uncurried as EU
 import Global.Unsafe (unsafeStringify)
-import JollyPong (ActionVariant(..), Middleware(..), Reducer(..), Store, applyMiddleware, combineReducers, createStore)
-import Partial.Unsafe (unsafePartial)
-import React (ReactClass, ReactElement, createClassStateless, createFactory)
-import React.DOM as D
-import React.DOM.Props as P
-import ReactDOM (render)
+import JollyPong (ActionVariant(..), Middleware(..), Reducer(..), combineReducers)
+import Type.Row (type (+))
+
+foreign import data ReactElement :: Type
+foreign import data ReactComponent :: Type -> Type
 
 type State =
   { a :: Int
@@ -33,16 +27,15 @@ state =
   , b: "a"
   }
 
-type Action =
-  ActionVariant ("ping" :: String)
+type Action = ActionVariant ("ping" :: String)
 
 aReducer :: Reducer Int (ActionVariant ("ping" :: String))
-aReducer = Reducer $ mkFn2 reducer
+aReducer = Reducer $ FU.mkFn2 inner
   where
-    reducer a b = fromMaybe 0 $ add 1 <$> toMaybe a
+    inner a b = fromMaybe 0 $ add 1 <$> toMaybe a
 
 bReducer :: Reducer String (ActionVariant ())
-bReducer = Reducer $ mkFn2 \a b -> "sdfd"
+bReducer = Reducer $ FU.mkFn2 \a b -> "sdfd"
 
 reducer :: Reducer State Action
 reducer = combineReducers
@@ -50,51 +43,35 @@ reducer = combineReducers
   , b: bReducer
   }
 
-middleware :: Middleware _ _ _ State Action
+middleware :: Middleware State Action
 middleware = Middleware go
   where
-    go store = mkEffFn1 <<< handleAction
+    go store = EU.mkEffectFn1 <<< handleAction
     handleAction next action = do
       log $ "action called: " <> unsafeStringify action
-      runEffFn1 next action
+      EU.runEffectFn1 next action
 
-helloWorld :: {} -> ReactElement
-helloWorld =
-  createFactory $ enhance component
+type StateProps r = ( count :: String | r )
+
+mapState :: MapState State (StateProps ())
+mapState = MapState go
   where
-    enhance :: ReactClass _ -> ReactClass {}
-    enhance = connect mapState mapDispatch
-    mapState :: MapState State _
-    mapState = MapState go
-      where
-        go {a} = {count: show a}
-    mapDispatch :: MapDispatch _ Action _
-    mapDispatch = MapDispatch go
-      where
-        go d | dispatch <- runEffFn1 d =
-          { doPing: dispatch $ ActionVariant {type: "ping"}
-          }
-    component = createClassStateless render
-    render {doPing, count} = do
-      D.div
-        []
-        [ D.h1' <<< pure <<< D.text $ "Count: " <> count
-        , D.button
-          [ P.onClick \_ -> doPing
-          ]
-          [ D.text "Click me!"]
-        ]
+    go {a} = {count: show a}
 
-view :: forall e. Store e State Action -> ReactElement
-view store = reduxProvider store $ helloWorld {}
+type DispatchProps r = ( doPing :: Effect Unit | r )
 
+mapDispatch :: MapDispatch Action (DispatchProps ())
+mapDispatch = MapDispatch go
+  where
+    go d | dispatch <- EU.runEffectFn1 d =
+      { doPing: dispatch $ ActionVariant {type: "ping"}
+      }
+
+type InnerProps r = StateProps + DispatchProps + r
+
+enhance :: forall topProps. ReactComponent { | InnerProps topProps } -> ReactComponent { | topProps }
+enhance = connect mapState mapDispatch
+
+main :: Effect Unit
 main = do
-  enhancer <- applyMiddleware [middleware]
-  store <- createStore reducer state enhancer
-  win <- window
-  doc <- document win
-  elm <- getElementById
-           (ElementId "example")
-           (documentToNonElementParentNode (htmlDocumentToDocument doc))
-  let a = view store
-  render (view store) (unsafePartial $ fromJust elm)
+  log "done"

@@ -2,6 +2,8 @@
 
 A simple wrapper around React-Redux that provides real row unions for working with mapState and mapDispatch.
 
+This is meant to be a reference for you to implement something similar in your own project.
+
 ![](https://i.imgur.com/94WNLaX.png)
 
 ### Warning
@@ -13,30 +15,24 @@ Connect will always be a partial function because the React Context-injected Sto
 From [test/Main.purs](test/Main.purs)
 
 ```hs
-helloWorld :: {} -> ReactElement
-helloWorld =
-  createFactory $ enhance component
+type StateProps r = ( count :: String | r )
+
+mapState :: MapState State (StateProps ())
+mapState = MapState go
   where
-    enhance :: ReactClass _ -> ReactClass {}
-    enhance = connect mapState mapDispatch
-    mapState :: MapState State _
-    mapState = MapState go
-      where
-        go {a} = {count: show a}
-    mapDispatch :: MapDispatch _ Action _
-    mapDispatch = MapDispatch go
-      where
-        go d | dispatch <- runEffFn1 d =
-          { doPing: dispatch $ ActionVariant {type: "ping"}
-          }
-    component = createClassStateless render
-    render {doPing, count} = do
-      D.div
-        []
-        [ D.h1' <<< pure <<< D.text $ "Count: " <> count
-        , D.button
-          [ P.onClick \_ -> doPing
-          ]
-          [ D.text "Click me!"]
-        ]
+    go {a} = {count: show a}
+
+type DispatchProps r = ( doPing :: Effect Unit | r )
+
+mapDispatch :: MapDispatch Action (DispatchProps ())
+mapDispatch = MapDispatch go
+  where
+    go d | dispatch <- EU.runEffectFn1 d =
+      { doPing: dispatch $ ActionVariant {type: "ping"}
+      }
+
+type InnerProps r = StateProps + DispatchProps + r
+
+enhance :: forall topProps. ReactComponent { | InnerProps topProps } -> ReactComponent { | topProps }
+enhance = connect mapState mapDispatch
 ```
